@@ -1,0 +1,8 @@
+begin
+  R := 0;
+  while X > Y or X = Y do
+  begin
+    X := X - Y;
+    R := R + 1
+  end
+end

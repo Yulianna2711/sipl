@@ -1,0 +1,139 @@
+[
+  {
+    "id": "assign-basic",
+    "description": "Simple assignment",
+    "kind": "run",
+    "source": "begin\n  X := 5\nend",
+    "expect": {"status": "ok", "state": {"X": 5}}
+  },
+  {
+    "id": "arithmetic-precedence-assoc",
+    "description": "* has higher precedence than +; subtraction is left-associative: 10-2-3=5",
+    "kind": "run",
+    "source": "begin\n  X := 2 + 3 * 4;\n  Y := (2 + 3) * 4;\n  Z := 10 - 2 - 3\nend",
+    "expect": {"status": "ok", "state": {"X": 14, "Y": 20, "Z": 5}}
+  },
+  {
+    "id": "negative-numbers",
+    "description": "Integers include negative numbers",
+    "kind": "run",
+    "source": "begin\n  X := 0 - 5;\n  Y := X * X\nend",
+    "expect": {"status": "ok", "state": {"X": -5, "Y": 25}}
+  },
+  {
+    "id": "skip-keeps-state",
+    "description": "skip acts as the identity function (id)",
+    "kind": "run",
+    "source": "begin\n  skip\nend",
+    "initial_state": {"X": 1},
+    "expect": {"status": "ok", "state": {"X": 1}}
+  },
+  {
+    "id": "sequence-order",
+    "description": "Sequential execution: statements run top-to-bottom and update the state",
+    "kind": "run",
+    "source": "begin\n  X := 1;\n  Y := X + 1;\n  X := Y * 2\nend",
+    "expect": {"status": "ok", "state": {"X": 4, "Y": 2}}
+  },
+  {
+    "id": "if-then-branch",
+    "description": "Condition is true: then branch is executed",
+    "kind": "run",
+    "source": "begin\n  if X > 5 then Y := 1 else Y := 0\nend",
+    "initial_state": {"X": 7},
+    "expect": {"status": "ok", "state": {"X": 7, "Y": 1}}
+  },
+  {
+    "id": "if-else-branch",
+    "description": "Condition is false: else branch is executed",
+    "kind": "run",
+    "source": "begin\n  if X > 5 then Y := 1 else Y := 0\nend",
+    "initial_state": {"X": 2},
+    "expect": {"status": "ok", "state": {"X": 2, "Y": 0}}
+  },
+  {
+    "id": "if-equality",
+    "description": "Equality comparison =",
+    "kind": "run",
+    "source": "begin\n  if X = 3 then Y := 1 else Y := 0\nend",
+    "initial_state": {"X": 3},
+    "expect": {"status": "ok", "state": {"X": 3, "Y": 1}}
+  },
+  {
+    "id": "run-logical-operators-unicode_run",
+    "description": "Execution with logical operators negation (¬) and disjunction (∨)",
+    "kind": "run",
+    "source": "begin\n  if ¬ (X = 1) ∨ (X > 5) then Y := 1 else Y := 0\nend",
+    "initial_state": {"X": 2},
+    "expect": {"status": "ok", "state": {"X": 2, "Y": 1}}
+  },
+  {
+    "id": "while-countdown-sum",
+    "description": "Sum 5+4+3+2+1 using a loop",
+    "kind": "run",
+    "source": "begin\n  S := 0;\n  while N > 0 do\n  begin\n    S := S + N;\n    N := N - 1\n  end\nend",
+    "initial_state": {"N": 5},
+    "expect": {"status": "ok", "state": {"N": 0, "S": 15}}
+  },
+  {
+    "id": "while-zero-iterations",
+    "description": "While loop with false condition: body does not execute and state remains unchanged",
+    "kind": "run",
+    "source": "begin\n  while 0 > 1 do X := 99\nend",
+    "initial_state": {"X": 0},
+    "expect": {"status": "ok", "state": {"X": 0}}
+  },
+  {
+    "id": "power-from-task",
+    "description": "Power computation: multiplies base X by itself Y times until Y reaches zero",
+    "kind": "run",
+    "source": "begin\n  R := 1;\n  while Y > 0 do\n  begin\n    R := R * X;\n    Y := Y - 1\n  end\nend",
+    "initial_state": {"X": 2, "Y": 10},
+    "expect": {"status": "ok", "state": {"R": 1024, "X": 2, "Y": 0}}
+  },
+  {
+    "id": "factorial",
+    "description": "n! via loop",
+    "kind": "run",
+    "source": "begin\n  F := 1;\n  while N > 0 do\n  begin\n    F := F * N;\n    N := N - 1\n  end\nend",
+    "initial_state": {"N": 5},
+    "expect": {"status": "ok", "state": {"F": 120, "N": 0}}
+  },
+  {
+    "id": "nested-blocks",
+    "description": "Nested begin...end blocks are transparent",
+    "kind": "run",
+    "source": "begin\n  begin\n    X := 1;\n    begin\n      Y := X + 1\n    end\n  end\nend",
+    "expect": {"status": "ok", "state": {"X": 1, "Y": 2}}
+  },
+  {
+    "id": "priority-if-then-seq",
+    "description": "Operator precedence: semicolon binds looser than if-else, ensuring subsequent statements execute correctly",
+    "kind": "run",
+    "source": "begin\n  X := 10;\n  if X > 5 then Y := 1 else Y := 2;\n  Z := 3\nend",
+    "expect": {"status": "ok", "state": {"X": 10, "Y": 1, "Z": 3}}
+  },
+  {
+    "id": "priority-while-seq",
+    "description": "Operator precedence: semicolon binds looser than while loop, ensuring subsequent statements execute after the loop",
+    "kind": "run",
+    "source": "begin\n  X := 0;\n  S := 0;\n  while X > 0 do X := X - 1;\n  S := 7\nend",
+    "expect": {"status": "ok", "state": {"X": 0, "S": 7}}
+  },
+  {
+    "id": "monotone-small-state",
+    "description": "Program on a minimal state",
+    "kind": "run",
+    "source": "begin\n  X := X + 1\nend",
+    "initial_state": {"X": 1},
+    "expect": {"status": "ok", "state": {"X": 2}}
+  },
+  {
+    "id": "monotone-extended-state",
+    "description": "Extended state: extra variables in memory remain untouched during execution",
+    "kind": "run",
+    "source": "begin\n  X := X + 1\nend",
+    "initial_state": {"X": 1, "Z": 9},
+    "expect": {"status": "ok", "state": {"X": 2, "Z": 9}}
+  }
+]

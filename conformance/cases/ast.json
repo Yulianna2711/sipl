@@ -1,0 +1,65 @@
+[
+  {
+    "id": "ast-precedence",
+    "description": "* has higher precedence than +",
+    "kind": "ast",
+    "source": "begin\n  X := 1 + 2 * 3\nend",
+    "expect": {"sexpr": "(prog (assign X (+ 1 (* 2 3))))"}
+  },
+  {
+    "id": "ast-left-assoc",
+    "description": "Subtraction is left-associative: 10 - 2 - 3 = (10 - 2) - 3",
+    "kind": "ast",
+    "source": "begin\n  X := 10 - 2 - 3\nend",
+    "expect": {"sexpr": "(prog (assign X (- (- 10 2) 3)))"}
+  },
+  {
+    "id": "ast-parens",
+    "description": "Parentheses change structure but do not appear in the AST",
+    "kind": "ast",
+    "source": "begin\n  X := (1 + 2) * 3\nend",
+    "expect": {"sexpr": "(prog (assign X (* (+ 1 2) 3)))"}
+  },
+  {
+    "id": "ast-if",
+    "description": "Conditional statement",
+    "kind": "ast",
+    "source": "begin\n  if X > 0 then Y := 1 else Y := 2\nend",
+    "expect": {"sexpr": "(prog (if (> X 0) (assign Y 1) (assign Y 2)))"}
+  },
+  {
+    "id": "ast-while",
+    "description": "While loop statement",
+    "kind": "ast",
+    "source": "begin\n  while X > 0 do X := X - 1\nend",
+    "expect": {"sexpr": "(prog (while (> X 0) (assign X (- X 1))))"}
+  },
+  {
+    "id": "ast-seq",
+    "description": "Sequence of two statements",
+    "kind": "ast",
+    "source": "begin\n  X := 1; Y := 2\nend",
+    "expect": {"sexpr": "(prog (seq (assign X 1) (assign Y 2)))"}
+  },
+  {
+    "id": "ast-priority-if-seq",
+    "description": "; has lowest precedence: sequence is outside, if is inside",
+    "kind": "ast",
+    "source": "begin\n  if X > 0 then Y := 1 else Y := 2; Z := 3\nend",
+    "expect": {"sexpr": "(prog (seq (if (> X 0) (assign Y 1) (assign Y 2)) (assign Z 3)))"}
+  },
+  {
+    "id": "ast-block-transparent",
+    "description": "Nested block is transparent",
+    "kind": "ast",
+    "source": "begin\n  begin\n    skip\n  end\nend",
+    "expect": {"sexpr": "(prog (skip))"}
+  },
+  {
+    "id": "ast-logical-operators",
+    "description": "AST for logical operators negation (¬) and disjunction (∨)",
+    "kind": "ast",
+    "source": "begin\n  if ¬ (X = 1) ∨ (X > 5) then Y := 1 else Y := 0\nend",
+    "expect": {"sexpr": "(prog (if (or (not (= X 1)) (> X 5)) (assign Y 1) (assign Y 0)))"}
+  }
+]

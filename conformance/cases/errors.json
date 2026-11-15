@@ -1,0 +1,104 @@
+[
+  {
+    "id": "undefined-variable",
+    "description": "Variable without a value in state: x⇒(st) is undefined, so the result is undefined.",
+    "kind": "run",
+    "source": "begin\n  Y := X + 1\nend",
+    "initial_state": {},
+    "expect": {"status": "runtime_error"}
+  },
+  {
+    "id": "infinite-loop-step-limit",
+    "description": "Non-terminating loop is halted by the step limit",
+    "kind": "run",
+    "source": "begin\n  while 1 = 1 do skip\nend",
+    "max_steps": 1000,
+    "expect": {"status": "step_limit"}
+  },
+  {
+    "id": "run-gcd-unicode",
+    "description": "GCD via subtraction with logical negation (¬): GCD(8, 16) = 8",
+    "kind": "run",
+    "source": "begin\n  while ¬ (M = N) do\n    if M > N then\n      M := M - N\n    else\n      N := N - M\nend",
+    "initial_state": {"M": 8, "N": 16},
+    "expect": {"status": "ok", "state": {"M": 8, "N": 8}}
+  },
+  {
+    "id": "run-logical-operators-unicode_error",
+    "description": "Execution with logical operators negation (¬) and disjunction (∨)",
+    "kind": "run",
+    "source": "begin\n  if ¬ (X = 1) ∨ (X > 5) then Y := 1 else Y := 0\nend",
+    "initial_state": {"X": 2},
+    "expect": {"status": "ok", "state": {"X": 2, "Y": 1}}
+  },
+  {
+    "id": "syntax-missing-end",
+    "description": "Missing closing end keyword",
+    "kind": "run",
+    "source": "begin\n  X := 1",
+    "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-no-program-wrapper",
+    "description": "Missing mandatory 'begin ... end' program wrapper",
+    "kind": "run",
+    "source": "X := 1",
+    "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-missing-then",
+    "description": "if statement missing then",
+    "kind": "run",
+    "source": "begin\n  if X > 0 Y := 1 else Y := 2\nend",
+    "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-assign-with-equals",
+    "description": "Using = instead of :=",
+    "kind": "run",
+    "source": "begin\n  X = 1\nend",
+    "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-missing-expression",
+    "description": "Missing expression after :=;",
+    "kind": "run",
+    "source": "begin\n  X := 1;\n  Y :=\nend",
+    "expect": {"status": "syntax_error", "line": 4}
+  },
+  {
+    "id": "syntax-unbalanced-paren",
+    "description": "Unbalanced parenthesis",
+    "kind": "run",
+    "source": "begin\n  X := (1 + 2\nend",
+    "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-trailing-semicolon",
+    "description": "Trailing semicolon before 'end'",
+    "kind": "run",
+    "source": "begin\n  X := 1;\nend",
+    "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-empty-block",
+    "description": "Empty 'begin ... end' block",
+    "kind": "run",
+    "source": "begin\nend",
+    "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-expression-as-condition",
+    "description": "Condition must be a Bexp, not just a plain variable",
+    "kind": "run",
+    "source": "begin\n  if X then Y := 1 else Y := 2\nend",
+    "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-unknown-character",
+    "description": "Unknown character",
+    "kind": "run",
+    "source": "begin\n  X := 1 @ 2\nend",
+    "expect": {"status": "syntax_error"}
+  }
+]

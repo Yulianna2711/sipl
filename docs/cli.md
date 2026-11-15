@@ -13,6 +13,7 @@ python -m sipl COMMAND ...
 | `sipl check FILE`  | Check the syntax only. |
 | `sipl run FILE`    | Run the program and print the final state. |
 | `sipl trace FILE`  | Run the program and print the execution trace. |
+| `sipl term FILE`   | Print the semantic term of the program. |
 
 `FILE` is a SIPL source file, or `-` to read the program from stdin.
 
@@ -23,6 +24,8 @@ Options:
 | `--json` | all | Print one JSON document instead of text. |
 | `--set VAR=INT` | run, trace | Initial value of a variable. Repeat for several variables. |
 | `--max-steps N` | run, trace | Step limit against infinite loops (default 100000). |
+| `--style course\|ascii` | term | Notation: unicode `course` (default) or plain `ascii`. |
+| `--steps` | term | Also list the rules `NS_*` applied while building the term. |
 
 Examples:
 
@@ -32,6 +35,8 @@ sipl run examples/power.sipl --set X=2 --set Y=5
 sipl trace examples/gcd.sipl --set M=12 --set N=18
 sipl run examples/gcd.sipl --set M=12 --set N=18 --json
 echo "begin X := 1 end" | sipl parse -
+sipl term examples/power.sipl
+sipl term examples/gcd.sipl --steps --style ascii
 ```
 
 ## Exit codes
@@ -54,7 +59,7 @@ Every document has:
 | Field | Type | Meaning |
 |-------|------|---------|
 | `schema_version` | int | Always `1` for this schema. |
-| `command` | string | `parse`, `check`, `run` or `trace`. |
+| `command` | string | `parse`, `check`, `run`, `trace` or `term`. |
 | `ok` | bool | `true` if the command succeeded. |
 
 Spans are objects `{"start_line", "start_column", "end_line", "end_column"}`
@@ -75,6 +80,14 @@ Runtime failure: `steps`, `state` (state at the moment of failure), `error`.
 ### trace
 Always: `status` (`ok`, `error`, `step_limit`), `final_state`, `events`.
 On failure also `error`. Each event has `type` and `step`:
+
+### term
+`style` (`course` or `ascii`), `text` (the term as text) and `term` (the term
+as a tree of objects, for example `{"type": "WH", "cond": ..., "body": ...}`;
+types: `Const`, `Deref`, `Basic`, `Super`, `AS`, `Comp`, `IF`, `WH`, `Id`).
+With `--steps` there is also `steps`: a list of
+`{"rule", "span", "term_text"}`, one for each rule `NS_*` that was applied.
+See `docs/semantics.md` for the notation and the rules.
 
 | `type` | Extra fields |
 |--------|--------------|
@@ -102,7 +115,7 @@ Runtime errors add `span`.
     "message": "unexpected 'end'",
     "line": 1,
     "column": 12,
-    "expected": ["'(' ", "number", "variable name"]
+    "expected": ["'('", "number", "variable name"]
   }
 }
 ```

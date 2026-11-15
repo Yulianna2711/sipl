@@ -1,32 +1,32 @@
 # SIPL conformance suite
 
-Набір тестів, який перевіряє реалізацію мови SIPL лише через командний рядок,
-без доступу до внутрішніх модулів. 
+A test suite that checks an implementation of the SIPL language only through
+the command line, without access to internal modules.
 
-## Структура
+## Structure
 
 ```
 conformance/
-├── cases/              # дані: JSON-файли з кейсами
+├── cases/              # data: JSON files with cases
 │   ├── run.json
 │   ├── ast.json
 │   └── errors.json
-└── run_conformance.py  # інструмент запуску 
-tests/test_conformance.py  # підключення suite до pytest
-docs/conformance.md        # цей документ
+└── run_conformance.py  # runner
+tests/test_conformance.py  # connects the suite to pytest
+docs/conformance.md        # this document
 ```
 
-Кейси не залежать від мови реалізації. Усе, що залежить від конкретного CLI,
-зібрано в одному місці, у блоці `ADAPT`.
+The cases do not depend on the implementation language. Everything that depends
+on a particular CLI is gathered in one place, the `ADAPT` block.
 
-## Формат кейсу
+## Case format
 
-Кожен файл у `conformance/cases/` це JSON-масив кейсів. Приклад кейсу `run`:
+Each file in `conformance/cases/` is a JSON array of cases. Example of a `run` case:
 
 ```json
 {
   "id": "power-from-task",
-  "description": "R = X^Y з тексту завдання",
+  "description": "R = X^Y from the task text",
   "kind": "run",
   "source": "begin\n  R := 1;\n  while Y > 0 do\n  begin\n    R := R * X;\n    Y := Y - 1\n  end\nend",
   "initial_state": {"X": 2, "Y": 10},
@@ -35,127 +35,131 @@ docs/conformance.md        # цей документ
 }
 ```
 
-Приклад кейсу `ast`:
+Example of an `ast` case:
 
 ```json
 {
   "id": "ast-precedence",
-  "description": "* має вищий пріоритет за +",
+  "description": "* has higher precedence than +",
   "kind": "ast",
   "source": "begin\n  X := 1 + 2 * 3\nend",
   "expect": {"sexpr": "(prog (assign X (+ 1 (* 2 3))))"}
 }
 ```
 
-| Поле | Обов'язкове | Значення |
+| Field | Required | Meaning |
 |---|---|---|
-| `id` | так | унікальний ідентифікатор (дублікати відхиляються інструментом запуску) |
-| `description` | так | що перевіряє кейс і чому очікування саме таке |
-| `kind` | так | `run` (виконати програму) або `ast` (лише розібрати) |
-| `source` | так | текст програми SIPL |
-| `initial_state` | ні | початковий стан змінних (для `run`), за замовчуванням `{}` |
-| `max_steps` | ні | ліміт кроків виконання (для `run`) |
-| `expect` | так | очікуваний результат, див. нижче |
+| `id` | yes | unique identifier (duplicates are rejected by the runner) |
+| `description` | yes | what the case checks and why the expectation is what it is |
+| `kind` | yes | `run` (execute the program) or `ast` (only parse it) |
+| `source` | yes | text of the SIPL program |
+| `initial_state` | no | initial state of the variables (for `run`), `{}` by default |
+| `max_steps` | no | step limit of the execution (for `run`) |
+| `expect` | yes | expected result, see below |
 
-## Очікуваний результат (`expect`)
+## Expected result (`expect`)
 
 ### kind = `run`
 
-- `status` один із:
-  - `ok`: програма розібрана й виконана до кінця;
-  - `syntax_error`: текст не належить мові SIPL (виконання не починалось);
-  - `runtime_error`: помилка під час виконання, наприклад звернення до змінної,
-    якої немає в стані;
-  - `step_limit`: перевищено ліміт кроків (захист від нескінченних циклів).
-- `state`: повний кінцевий стан (лише при `ok`). Це JSON-об'єкт
-  «ім'я змінної → ціле число». Порівнюється точно, тобто зайвих і відсутніх змінних
-  бути не повинно.
-- `line`: (необов'язково) номер рядка (з 1), на який має вказувати помилка.
+- `status` is one of:
+  - `ok`: the program was parsed and executed to the end;
+  - `syntax_error`: the text does not belong to the SIPL language (execution did not start);
+  - `runtime_error`: an error during execution, for example a reference to a
+    variable that is not in the state;
+  - `step_limit`: the step limit was exceeded (protection against infinite loops).
+- `state`: the complete final state (only for `ok`). This is a JSON object
+  "variable name → integer". It is compared exactly, so there must be no extra
+  or missing variables.
+- `line`: (optional) the line number (from 1) the error must point to.
 
 ### kind = `ast`
 
-- `sexpr`: канонічний запис AST (нижче).
+- `sexpr`: the canonical form of the AST (below).
 
-## Канонічний запис AST
+## Canonical form of the AST
 
-AST різних реалізацій виглядають по-різному (різні класи, різні назви полів),
-тому порівнюється не сам AST, а його нормалізований S-вираз:
+The ASTs of different implementations look different (different classes,
+different field names), so what is compared is not the AST itself but its
+normalized S-expression:
 
-| Конструкція | Запис |
+| Construct | Form |
 |---|---|
-| програма | `(prog S)` |
-| присвоювання `x := a` | `(assign X E)` |
-| послідовність `S1; S2` | `(seq S1 S2)` |
-| розгалуження | `(if B S1 S2)` |
-| цикл | `(while B S)` |
-| порожній оператор | `(skip)` |
-| арифметика | `(+ a b)`, `(- a b)`, `(* a b)` |
-| порівняння | `(= a b)`, `(> a b)` |
-| заперечення `¬b` | `(not b)` |
-| диз'юнкція `b1 ∨ b2` | `(or b1 b2)` |
-| змінна, число | `X`, `42` |
+| program | `(prog S)` |
+| assignment `x := a` | `(assign X E)` |
+| sequence `S1; S2` | `(seq S1 S2)` |
+| conditional | `(if B S1 S2)` |
+| loop | `(while B S)` |
+| empty statement | `(skip)` |
+| arithmetic | `(+ a b)`, `(- a b)`, `(* a b)` |
+| comparison | `(= a b)`, `(> a b)` |
+| negation `¬b` | `(not b)` |
+| disjunction `b1 ∨ b2` | `(or b1 b2)` |
+| variable, number | `X`, `42` |
 
-Блок `begin S end` і дужки `(a)` у запис не потрапляють: вони прозорі
-(`sem_S(begin S end) = sem_S(S)`, `sem_A((a)) = sem_A(a)`). Позиції в тексті
-(SourceSpan) не порівнюються.
+The block `begin S end` and the parentheses `(a)` do not appear in the form:
+they are transparent (`sem_S(begin S end) = sem_S(S)`, `sem_A((a)) = sem_A(a)`).
+Positions in the text (SourceSpan) are not compared.
 
-Приклад з логічними операторами. Оскільки `¬` має вищий пріоритет за `∨`,
-`¬ (X = 1) ∨ (X > 5)` розбирається як `(¬(X = 1)) ∨ (X > 5)`:
+An example with logical operators. Since `¬` has higher precedence than `∨`,
+`¬ (X = 1) ∨ (X > 5)` is parsed as `(¬(X = 1)) ∨ (X > 5)`:
 
 ```
 (prog (if (or (not (= X 1)) (> X 5)) (assign Y 1) (assign Y 0)))
 ```
 
-## Що саме фіксує suite
+## What exactly the suite fixes
 
-- пріоритети та лівоасоціативність операцій: `10 - 2 - 3 = 5`;
-- `;` має найнижчий пріоритет, `while` та `if` зв'язують сильніше:
-  `if b then S1 else S2; S3` це `(if ...); S3`;
-- `begin ... end` потрібен лише для групування; для одного оператора в тілі
-  `while` чи гілці `if` він не використовується;
-- частковість: невизначена змінна дає `runtime_error`, нескінченний цикл дає `step_limit`;
-- нуль ітерацій циклу залишає стан без змін;
-- монотонність: зайві змінні в початковому стані лишаються в результаті;
-- відповідність граматиці: `;` перед `end`, порожній блок `begin end`, зайвий `end`
-  (кейс `syntax-stray-end`), умова без порівняння, відсутній `then` це синтаксичні помилки.
+- precedence and left associativity of operations: `10 - 2 - 3 = 5`;
+- `;` has the lowest precedence, `while` and `if` bind tighter:
+  `if b then S1 else S2; S3` is `(if ...); S3`;
+- `begin ... end` is needed only for grouping; for a single statement in the
+  body of a `while` or a branch of an `if` it is not used;
+- partiality: an undefined variable gives `runtime_error`, an infinite loop gives `step_limit`;
+- zero iterations of a loop leave the state unchanged;
+- monotonicity: extra variables in the initial state remain in the result;
+- conformance to the grammar: `;` before `end`, an empty block `begin end`, an
+  extra `end` (case `syntax-stray-end`), a condition without a comparison, a
+  missing `then` are syntax errors.
 
-## Контракт CLI
+## CLI contract
 
-Раннер взаємодіє з реалізацією лише через такі виклики. Нехай `<cmd>` це
-команда запуску реалізації (наприклад, python -m sipl).
+The runner interacts with an implementation only through the following calls.
+Let `<cmd>` be the command that starts the implementation (for example,
+python -m sipl).
 
-**Розбір**
+**Parsing**
 
 ```
 <cmd> parse --json FILE
 ```
 
-- код завершення 0: у stdout JSON-об'єкт із ключем `ast` (дерево програми);
-- ненульовий код: програма синтаксично некоректна.
+- exit code 0: stdout holds a JSON object with the key `ast` (the program tree);
+- non-zero exit code: the program is syntactically incorrect.
 
-**Виконання**
+**Execution**
 
 ```
 <cmd> run --json FILE [--set NAME=VALUE]... [--max-steps N]
 ```
 
-- `--set` задає початкове значення змінної, прапорець можна повторювати;
-- `--max-steps` обмежує кількість кроків;
-- код завершення 0: у stdout JSON-об'єкт із ключем `state` (кінцевий стан);
-- ненульовий код: у stdout JSON-об'єкт із ключем `error`:
+- `--set` gives the initial value of a variable, the flag can be repeated;
+- `--max-steps` limits the number of steps;
+- exit code 0: stdout holds a JSON object with the key `state` (the final state);
+- non-zero exit code: stdout holds a JSON object with the key `error`:
 
 ```json
 {"error": {"kind": "syntax", "line": 3, "message": "..."}}
 ```
 
-де `kind` одне з `syntax`, `runtime`, `step_limit`, а `line` номер рядка з 1
-(може бути `null`, якщо рядок не визначено).
+where `kind` is one of `syntax`, `runtime`, `step_limit`, and `line` is the line
+number from 1 (it can be `null` if the line is not determined).
 
-Раннер перетворює ці відповіді на статуси `ok` / `syntax_error` /
-`runtime_error` / `step_limit`. Якщо процес не повернув коректний JSON, статус
-буде `crash` (запуск реалізації зламався, а не виявив помилку в програмі).
+The runner turns these responses into the statuses `ok` / `syntax_error` /
+`runtime_error` / `step_limit`. If the process did not return valid JSON, the
+status is `crash` (launching the implementation broke, as opposed to finding an
+error in the program).
 
-## Запуск
+## Running
 
 ```
 python conformance/run_conformance.py
@@ -164,24 +168,25 @@ python conformance/run_conformance.py --cmd "python -m sipl"
 pytest tests/test_conformance.py -q
 ```
 
-- `--cmd` команда запуску реалізації. Якщо її не задано, береться змінна
-  середовища `SIPL_CMD`, а якщо й вона не задана, використовується поточний
-  інтерпретатор Python (`<sys.executable> -m sipl`). Завдяки цьому suite працює
-  у віртуальному середовищі без додаткового налаштування.
-- `--filter` запускає лише кейси, id яких містить заданий рядок.
-- Код завершення 0, якщо всі кейси пройшли; 1, якщо є провали.
+- `--cmd` is the command that starts the implementation. If it is not given,
+  the environment variable `SIPL_CMD` is used, and if that is not set either,
+  the current Python interpreter is used (`<sys.executable> -m sipl`). Thanks
+  to this the suite works inside a virtual environment without extra setup.
+- `--filter` runs only the cases whose id contains the given string.
+- The exit code is 0 if all cases passed and 1 if there are failures.
 
-Для кожного провалу раннер друкує id кейсу, файл, опис і причину (очікуване
-та отримане значення).
+For each failure the runner prints the case id, the file, the description and
+the reason (the expected and the received value).
 
-## Запуск на іншій реалізації
+## Running against another implementation
 
-Щоб перевірити іншу реалізацію SIPL, треба підлаштувати блок `ADAPT` у
+To check another implementation of SIPL, adjust the `ADAPT` block in
 `run_conformance.py`:
 
-- `parse_args_for`: назви підкоманд і прапорців (`--json`, `--set`, `--max-steps`);
-- `normalize_run`: ключі JSON-відповіді (`state`, `error`, `kind`, `line`) і
-  відповідність значень `kind` статусам (`STATUS_MAP`);
-- `to_sexpr`: перетворення JSON-AST цієї реалізації на канонічний S-вираз.
+- `parse_args_for`: the names of the subcommands and flags (`--json`, `--set`, `--max-steps`);
+- `normalize_run`: the keys of the JSON response (`state`, `error`, `kind`,
+  `line`) and the mapping of `kind` values to statuses (`STATUS_MAP`);
+- `to_sexpr`: the conversion of this implementation's JSON AST into the
+  canonical S-expression.
 
-Самі файли в `conformance/cases/` змінювати не треба.
+The files in `conformance/cases/` do not need to be changed.

@@ -227,3 +227,43 @@ def test_subprocess_exit_code_for_syntax_error():
     result = subprocess.run([sys.executable, "-m", "sipl", "check", "-"],
                             input="begin end", capture_output=True, text=True)
     assert result.returncode == 1
+
+def test_term_text_for_power_matches_the_practicum():
+    code, out, _ = cli("term", POWER)
+    assert code == 0
+    assert out.strip() == ("AS_R(1) · WH(S²(gr, Y⇒, 0), "
+                           "AS_R(S²(mult, R⇒, X⇒)) · AS_Y(S²(sub, Y⇒, 1)))")
+
+
+def test_term_ascii_style():
+    code, out, _ = cli("term", POWER, "--style", "ascii")
+    assert code == 0 and out.strip().isascii()
+    assert out.strip().startswith("AS_R(1) ; WH(S2(gr, Y=>, 0)")
+
+
+def test_term_json():
+    code, out, _ = cli("term", GCD, "--json")
+    data = json.loads(out)
+    assert code == 0 and data["command"] == "term" and data["ok"] is True
+    assert data["term"]["type"] == "WH"
+    assert data["text"].startswith("WH(S¹(neg")
+    assert "steps" not in data
+
+
+def test_term_steps_text_and_json():
+    code, out, _ = cli("term", POWER, "--steps")
+    lines = out.splitlines()
+    assert code == 0 and lines[1].strip().startswith("NS_Prog")
+    code, out, _ = cli("term", POWER, "--steps", "--json")
+    steps = json.loads(out)["steps"]
+    assert steps[0]["rule"] == "NS_Prog" and steps[0]["span"]["start_line"] == 1
+    assert [s["rule"] for s in steps].count("NS_Stm_As") == 3
+
+
+def test_term_syntax_error_exit_code():
+    code, out, err = cli("term", "-", stdin="begin X := end")
+    assert code == 1 and "Syntax error" in err
+
+
+def test_term_bad_style_is_usage_error():
+    assert cli("term", POWER, "--style", "latex")[0] == 2

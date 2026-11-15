@@ -12,6 +12,7 @@ from .interpreter import (DEFAULT_MAX_STEPS, Interpreter, SiplRuntimeError,
                           StepLimitExceeded, trace)
 from .interpreter.events import span_to_dict
 from .parser import parse
+from .semantics import STYLES, explain, format_term, term_of, term_to_dict
 from .serialize import ast_to_dict, format_tree
 
 EXIT_OK = 0
@@ -40,7 +41,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"sipl {_version()}")
     sub = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
 
-    def add(name: str, help_text: str, runnable: bool) -> None:
+    def add(name: str, help_text: str, runnable: bool) -> argparse.ArgumentParser:
         sp = sub.add_parser(name, help=help_text, description=help_text)
         sp.add_argument("file", help="SIPL source file, or '-' to read stdin")
         sp.add_argument("--json", action="store_true",
@@ -50,11 +51,17 @@ def _build_parser() -> argparse.ArgumentParser:
                             help="initial value of a variable (repeatable)")
             sp.add_argument("--max-steps", type=int, default=DEFAULT_MAX_STEPS,
                             metavar="N", help=f"step limit (default {DEFAULT_MAX_STEPS})")
+        return sp
 
     add("parse", "Parse a program and print its AST.", False)
     add("check", "Check the syntax of a program.", False)
     add("run", "Run a program and print the final state.", True)
     add("trace", "Run a program and print its execution trace.", True)
+    term_parser = add("term", "Print the semantic term of a program.", False)
+    term_parser.add_argument("--style", choices=STYLES, default="course",
+                             help="notation: unicode 'course' (default) or plain 'ascii'")
+    term_parser.add_argument("--steps", action="store_true",
+                             help="also list the rules NS_* applied while building the term")
     return parser
 
 def _dump(out: TextIO, payload: dict) -> None:
@@ -188,8 +195,29 @@ def _cmd_trace(args, source, out, err) -> int:
     return EXIT_OK if ok else EXIT_RUNTIME
 
 
+def _cmd_term(args, source, out, err) -> int:
+    program = parse(source)
+    term = term_of(program)
+    text = format_term(term, args.style)
+    steps = explain(program) if args.steps else None
+    if args.json:
+        extra = {}
+        if steps is not None:
+            extra["steps"] = [{"rule": st.rule, "span": span_to_dict(st.span),
+                               "term_text": format_term(st.term, args.style)}
+                              for st in steps]
+        _dump(out, _envelope("term", True, style=args.style, text=text,
+                             term=term_to_dict(term), **extra))
+    else:
+        print(text, file=out)
+        for st in steps or []:
+            where = f"{st.span.start_line}:{st.span.start_column}"
+            print(f"  {st.rule:<12}[{where}]  {format_term(st.term, args.style)}", file=out)
+    return EXIT_OK
+
+
 _COMMANDS = {"parse": _cmd_parse, "check": _cmd_check,
-             "run": _cmd_run, "trace": _cmd_trace}
+             "run": _cmd_run, "trace": _cmd_trace, "term": _cmd_term}
 
 
 def main(argv: list[str] | None = None, stdout: TextIO | None = None,

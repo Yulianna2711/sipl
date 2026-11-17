@@ -12,7 +12,7 @@ from .interpreter import (DEFAULT_MAX_STEPS, Interpreter, SiplRuntimeError,
                           StepLimitExceeded, trace)
 from .interpreter.events import span_to_dict
 from .parser import parse
-from .semantics import STYLES, explain, format_term, term_of, term_to_dict
+from .semantics import (STYLES, evaluate, explain, format_term, format_trace, term_of, term_to_dict)
 from .serialize import ast_to_dict, format_tree
 
 EXIT_OK = 0
@@ -62,6 +62,11 @@ def _build_parser() -> argparse.ArgumentParser:
                              help="notation: unicode 'course' (default) or plain 'ascii'")
     term_parser.add_argument("--steps", action="store_true",
                              help="also list the rules NS_* applied while building the term")
+    apply_parser = add("apply", "Apply the semantic term of a program to a state.", True)
+    apply_parser.add_argument("--style", choices=STYLES, default="course",
+                              help="notation: unicode 'course' (default) or plain 'ascii'")
+    apply_parser.add_argument("--steps", action="store_true",
+                              help="also print the trace of the applied AF_* rules")
     return parser
 
 def _dump(out: TextIO, payload: dict) -> None:
@@ -215,9 +220,29 @@ def _cmd_term(args, source, out, err) -> int:
             print(f"  {st.rule:<12}[{where}]  {format_term(st.term, args.style)}", file=out)
     return EXIT_OK
 
+def _cmd_apply(args, source, out, err) -> int:
+    program = parse(source)
+    result = evaluate(program, _parse_initial(args.set), max_steps=args.max_steps)
+    if args.json:
+        payload = result.to_dict(args.style)
+        if not args.steps:
+            del payload["steps"]
+        extra = {} if result.defined else {
+            "error": {"kind": "undefined", "message": result.reason}}
+        _dump(out, _envelope("apply", result.defined, style=args.style,
+                             **payload, **extra))
+    else:
+        if args.steps:
+            print(format_trace(result, args.style), file=out)
+        if result.defined:
+            for name, value in sorted(result.final_state.items()):
+                print(f"{name} = {value}", file=out)
+        else:
+            print(f"undefined: {result.reason}", file=err)
+    return EXIT_OK if result.defined else EXIT_RUNTIME
 
-_COMMANDS = {"parse": _cmd_parse, "check": _cmd_check,
-             "run": _cmd_run, "trace": _cmd_trace, "term": _cmd_term}
+
+_COMMANDS = {"parse": _cmd_parse, "check": _cmd_check, "run": _cmd_run, "trace": _cmd_trace, "term": _cmd_term, "apply": _cmd_apply}
 
 
 def main(argv: list[str] | None = None, stdout: TextIO | None = None,

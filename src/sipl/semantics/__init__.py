@@ -1,3 +1,5 @@
+from .evaluate import (DEFAULT_MAX_STEPS, EvalStep, Evaluation, evaluate, format_state,
+                       format_trace)
 from .builder import RuleStep, explain, sem_A, sem_B, sem_P, sem_S, term_of
 from .formatter import STYLES, format_term
 from .terms import (AS, BASIC_FUNCTIONS, IF, WH, Basic, Comp, Const, Deref, Id, Super,
@@ -9,7 +11,10 @@ __all__ = [
     "Basic",
     "Comp",
     "Const",
+    "DEFAULT_MAX_STEPS",
     "Deref",
+    "EvalStep",
+    "Evaluation",
     "IF",
     "Id",
     "RuleStep",
@@ -17,8 +22,11 @@ __all__ = [
     "Super",
     "Term",
     "WH",
+    "evaluate",
     "explain",
+    "format_state",
     "format_term",
+    "format_trace",
     "sem_A",
     "sem_B",
     "sem_P",

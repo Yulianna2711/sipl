@@ -133,7 +133,7 @@ python -m sipl).
 <cmd> parse --json FILE
 ```
 
-- exit code 0: stdout holds a JSON object with the key `ast` (the program tree);
+- exit code 0: stdout holds a JSON object with the key `final_state` (the final state);
 - non-zero exit code: the program is syntactically incorrect.
 
 **Execution**
@@ -147,8 +147,17 @@ python -m sipl).
 - exit code 0: stdout holds a JSON object with the key `state` (the final state);
 - non-zero exit code: stdout holds a JSON object with the key `error`:
 
+Syntax error:
+
 ```json
-{"error": {"kind": "syntax", "line": 3, "message": "..."}}
+{"error": {"kind": "syntax", "line": 3, "column": 5, "message": "unexpected 'end'"}}
+```
+
+Runtime error (the position is in `span`):
+
+```json
+{"error": {"kind": "runtime", "message": "variable 'X' is not defined",
+           "span": {"start_line": 2, "start_column": 8, "end_line": 2, "end_column": 9}}}
 ```
 
 where `kind` is one of `syntax`, `runtime`, `step_limit`, and `line` is the line

@@ -36,9 +36,12 @@ def normalize_run(proc: subprocess.CompletedProcess) -> dict:
     if proc.returncode == 0:
         return {"status": "ok", "state": data.get("final_state")}
     err = data.get("error") or {}
+    line = err.get("line")
+    if line is None:
+        line = (err.get("span") or {}).get("start_line")
     return {
         "status": STATUS_MAP.get(err.get("kind", ""), "other_error"),
-        "line": err.get("line"),
+        "line": line,
     }
 
 def to_sexpr(n) -> str:

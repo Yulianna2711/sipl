@@ -100,5 +100,12 @@
     "kind": "run",
     "source": "begin\n  X := 1 @ 2\nend",
     "expect": {"status": "syntax_error"}
+  },
+  {
+    "id": "syntax-stray-end",
+    "description": "Extra 'end' after a complete program",
+    "kind": "run",
+    "source": "begin skip end end",
+    "expect": {"status": "syntax_error"}
   }
 ]

@@ -57,7 +57,9 @@ class Interpreter:
         if isinstance(b, ast.Gt):
             return self.eval_aexp(b.left) > self.eval_aexp(b.right)
         if isinstance(b, ast.Or):
-            return self.eval_bexp(b.left) or self.eval_bexp(b.right)
+            left = self.eval_bexp(b.left)
+            right = self.eval_bexp(b.right)
+            return left or right
         if isinstance(b, ast.Not):
             return not self.eval_bexp(b.operand)
         raise TypeError(f"not a condition: {b!r}")

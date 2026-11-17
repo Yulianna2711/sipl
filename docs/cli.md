@@ -59,7 +59,7 @@ Every document has:
 | Field | Type | Meaning |
 |-------|------|---------|
 | `schema_version` | int | Always `1` for this schema. |
-| `command` | string | `parse`, `check`, `run`, `trace` or `term`. |
+| `command` | string | `parse`, `check`, `run`, `trace`, `term` or `apply`. |
 | `ok` | bool | `true` if the command succeeded. |
 
 Spans are objects `{"start_line", "start_column", "end_line", "end_column"}`
@@ -119,3 +119,16 @@ Runtime errors add `span`.
   }
 }
 ```
+
+## `sipl apply FILE`
+
+Applies the semantic term of the program to the initial state and prints the final state.
+
+| Option | Meaning |
+|---|---|
+| `--set VAR=INT` | initial value of a variable (repeatable) |
+| `--max-steps N` | limit of applied rules (default 100000) |
+| `--steps` | also print the trace of the applied `AF_*` rules |
+| `--style course\|ascii` | notation of terms and states |
+| `--json` | one JSON document: `status`, `final_state`, `reason`, optional `steps` |
+

@@ -267,3 +267,68 @@ def test_term_syntax_error_exit_code():
 
 def test_term_bad_style_is_usage_error():
     assert cli("term", POWER, "--style", "latex")[0] == 2
+
+
+def test_apply_power_text():
+    code, out, _ = cli("apply", POWER, "--set", "X=2", "--set", "Y=5")
+    assert code == 0
+    assert out.splitlines() == ["R = 32", "X = 2", "Y = 0"]
+
+
+def test_apply_steps_prints_trace_then_state():
+    code, out, _ = cli("apply", POWER, "--set", "X=2", "--set", "Y=1", "--steps")
+    lines = out.splitlines()
+    assert code == 0 and lines[0].startswith("AF_SEQ")
+    assert "AF_WH" in out and lines[-1] == "Y = 0"
+    assert "↦" in out
+
+
+def test_apply_ascii_style():
+    code, out, _ = cli("apply", POWER, "--set", "X=2", "--set", "Y=1",
+                       "--steps", "--style", "ascii")
+    assert code == 0 and "->" in out and "↦" not in out
+
+
+def test_apply_undefined_variable_exit_3():
+    code, out, err = cli("apply", "-", stdin="begin X := Y end")
+    assert code == 3 and out == ""
+    assert err.startswith("undefined:") and "'Y'" in err
+
+
+def test_apply_undefined_loop_step_limit():
+    code, _, err = cli("apply", "-", "--max-steps", "50",
+                       stdin="begin while 1 > 0 do X := 1 end")
+    assert code == 3 and "step limit" in err
+
+
+def test_apply_json_defined():
+    code, out, _ = cli("apply", POWER, "--set", "X=2", "--set", "Y=2", "--json", "--steps")
+    data = json.loads(out)
+    assert code == 0 and data["ok"] is True and data["command"] == "apply"
+    assert data["status"] == "defined"
+    assert data["final_state"] == {"X": 2, "Y": 0, "R": 4}
+    assert data["steps"][0]["formula"] == "AF_SEQ"
+
+
+def test_apply_json_without_steps_has_no_trace():
+    _, out, _ = cli("apply", POWER, "--set", "X=2", "--set", "Y=2", "--json")
+    assert "steps" not in json.loads(out)
+
+
+def test_apply_json_undefined():
+    code, out, _ = cli("apply", "-", "--json", stdin="begin X := Y end")
+    data = json.loads(out)
+    assert code == 3 and data["ok"] is False and data["status"] == "undefined"
+    assert data["final_state"] is None
+    assert data["error"]["kind"] == "undefined"
+
+
+def test_apply_agrees_with_run():
+    _, a, _ = cli("apply", POWER, "--set", "X=3", "--set", "Y=3")
+    _, r, _ = cli("run", POWER, "--set", "X=3", "--set", "Y=3")
+    assert a == r
+
+
+def test_apply_syntax_error_exit_code():
+    code, _, err = cli("apply", "-", stdin="begin X := end")
+    assert code == 1

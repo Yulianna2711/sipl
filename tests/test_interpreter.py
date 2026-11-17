@@ -97,3 +97,7 @@ def test_infinite_loop_hits_step_limit():
 
 def test_step_limit_not_hit_by_short_program():
     assert run("begin X := 1 end", max_steps=1) == {"X": 1}
+
+def test_or_evaluates_both_operands():
+    with pytest.raises(UndefinedVariableError):
+        run("begin if 1 > 0 or Z > 0 then X := 1 else skip end")

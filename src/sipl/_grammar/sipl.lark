@@ -1,0 +1,63 @@
+program: _BEGIN stmt _END
+
+?stmt: simple
+     | simple (_SEMI simple)+      -> seq
+
+?simple: assign
+       | if_stmt
+       | while_stmt
+       | block
+       | skip
+
+assign: VAR _ASSIGN aexp
+if_stmt: _IF cond _THEN simple _ELSE simple
+while_stmt: _WHILE cond _DO simple
+block: _BEGIN stmt _END
+skip: _SKIP
+
+?aexp: aexp _PLUS term             -> add
+     | aexp _MINUS term            -> sub
+     | term
+
+?term: term _STAR factor           -> mul
+     | factor
+
+?factor: NUMBER                    -> num
+       | VAR                       -> var
+       | _LP aexp _RP
+
+?cond: cond _OR neg                -> or_
+     | neg
+
+?neg: _NOT neg                     -> not_
+    | atom
+
+?atom: aexp _EQ aexp               -> eq
+     | aexp _GT aexp               -> gt
+     | _LP cond _RP
+
+VAR: /(?!(?:begin|end|while|do|if|then|else|skip|not|or)\b)[A-Za-z][A-Za-z0-9_]*/
+NUMBER: /[0-9]+/
+
+_ASSIGN: ":="
+_SEMI: ";"
+_PLUS: "+"
+_MINUS: "-"
+_STAR: "*"
+_EQ: "="
+_GT: ">"
+_LP: "("
+_RP: ")"
+_NOT: /¬|not\b/
+_OR: /∨|or\b/
+_BEGIN: /begin\b/
+_END: /end\b/
+_IF: /if\b/
+_THEN: /then\b/
+_ELSE: /else\b/
+_WHILE: /while\b/
+_DO: /do\b/
+_SKIP: /skip\b/
+
+%import common.WS
+%ignore WS

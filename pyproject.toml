@@ -21,3 +21,6 @@ testpaths = ["tests"]
 
 [project.scripts]
 sipl = "sipl.cli:main"
+
+[tool.setuptools.package-data]
+sipl = ["_grammar/*.lark"]

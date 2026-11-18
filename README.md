@@ -16,11 +16,18 @@
 
 ## Installation
 
+Requirements: Python 3.11 or newer and Git.
+
 ```
+git clone https://github.com/Yulianna2711/sipl
+cd sipl
 python -m venv .venv
-.venv\Scripts\activate         
+.venv\Scripts\activate          # Linux/macOS: source .venv/bin/activate
 pip install -e ".[dev]"
 ```
+
+The installation pulls `lark` (the parser library) and the development tools
+(`pytest`, `pytest-cov`).
 
 ## Tests
 
